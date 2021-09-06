@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css'; 
 import "./App.css";
-// import Axios from 'axios';
+import Axios from "./afterLogin";
+import { Button, Card } from 'react-bootstrap';
+import { useHistory } from 'react-router-dom';
 
 function SyllabusForm(fields) {
     const [title, setTitle] = useState(fields.syllabusData.title);
@@ -24,7 +26,8 @@ function SyllabusForm(fields) {
     
     const saveItem = () => {
         const index = fields.index;
-        fields.onSave(index, itemData);
+        const isUpdate = fields.syllabusData.isUpdate;
+        fields.onSave(index, itemData, isUpdate );
     }
 
     const cancelForm = () =>
@@ -67,8 +70,11 @@ function SyllabusCard(fields) {
     );
 }
 
-function App() {
-    const title = "Welcome to Tecnics!";
+function CourseApis() {
+    const title = "Tecnics Welcomes ";
+    const history = useHistory();
+
+    const [isLoading, setLoading] = useState(false);
     const [syllabusItems, addSyllabusItem] = useState([]);
 
     var event = Event;
@@ -78,30 +84,64 @@ function App() {
             {
                 title: "",
                 description: "",
-                editMode: true
+                editMode: true,
+                isUpdate: false
             }
         );
         addSyllabusItem(syllabusItemsCopy);
     }
 
-    const handleSaveButton = (index, itemData) => {
+    useEffect(() => {
+		Axios.get()
+		.then((result) =>
+		{
+			const syllabusItems = result.data;
+			syllabusItems.forEach(syllabusItem => {
+				syllabusItem["editMode"] = false;
+				syllabusItem["isUpdate"] = true;
+			});
+			addSyllabusItem(syllabusItems);	
+			setLoading(true);
+		}).catch((error) => {
+			console.log(error);
+		})
+	}, []);
+
+    const handleSaveButton = (index, itemData, isUpdate) => {
         const syllabusItemsCopy = [...syllabusItems];
-        // syllabusItemsCopy[index] = data;
-        // syllabusItemsCopy[index].editMode = false;
+        const itemId = syllabusItemsCopy[index].itemId
+        syllabusItemsCopy[index] = itemData;
         const title = itemData.title;
         const description = itemData.description;
-        syllabusItemsCopy[index] = {title:title, description:description, editMode: false, titleError:"", descError:""};
-        if(title === "" || description === "") {
-			syllabusItemsCopy[index].editMode = true;
-			if(title === "") {
-				syllabusItemsCopy[index].titleError = "Please enter a valid title!";
-			}
-			if(description === "") {
-				syllabusItemsCopy[index].descriptionError = "Please enter a valid description!";
-			}
-		}
-        addSyllabusItem(syllabusItemsCopy);
-        console.log(syllabusItemsCopy);
+        const syllabusItem = syllabusItemsCopy[index];
+        if(!isUpdate) {
+            Axios.post( {
+                "title": syllabusItem.title,
+                "description": syllabusItem.description
+            }).then((result) => {
+                if(result.status === 201) {
+                    syllabusItemsCopy[index] = result.itemData[0];
+                    syllabusItemsCopy[index].editMode = false;
+                    syllabusItemsCopy[index].isUpdate = true;
+                    addSyllabusItem(syllabusItemsCopy);
+                }
+            }).catch((error) => {
+                console.log(error);
+            });
+        }
+        else {
+            Axios.put("/" + itemId, {
+                "title": syllabusItem.title, 
+                "description": syllabusItem.description
+            }).then((result) => {
+                if(result.status === 200) {
+                    syllabusItemsCopy[index] = result.data[0];
+                    syllabusItemsCopy[index].editMode = false;
+                    syllabusItemsCopy[index].isUpdate = true;
+                    addSyllabusItem(syllabusItemsCopy);
+                }
+            }); 
+        }
     };
 
     const handleEditButton = (index) => {
@@ -151,10 +191,20 @@ function App() {
         addSyllabusItem(syllabusItemsCopy);
     }
 
+    const logout = () => {
+        history.push("/");
+        window.sessionStorage.removeItem("token");
+        window.sessionStorage.removeItem("username");
+    }
+
+    const username = window.sessionStorage.getItem("username");
+    console.log(username);
+    
     return (
         <div>
-            <h1>{title}</h1>
-            <br></br><button onClick={addEmptyObject}>Add Syllabus</button><br></br>
+            <h1>{title + username}</h1>
+            <Button className="float-left" id="logout" onClick={logout}>Logout</Button>
+            <Button className="float-right" id="addSyllabus" onClick={addEmptyObject}>Add Syllabus</Button><br></br><br></br>
             {syllabusItems.map((syllabusItem, index) => {
                 if(syllabusItem.editMode === false) {
                     return (
@@ -168,8 +218,23 @@ function App() {
                 }
             })}
         </div>
+        // <div>
+        //     <br></br><button onClick={addEmptyObject}>Add Syllabus</button><br></br>
+            // {syllabusItems.map((syllabusItem, index) => {
+            //     if(syllabusItem.editMode === false) {
+            //         return (
+            //             <SyllabusCard key={index} syllabusData={syllabusItem} index={index} onEdit={handleEditButton} onDelete={handleDeleteButton}></SyllabusCard>
+            //         );
+            //     }
+            //     if(syllabusItem.editMode === true) {
+            //         return (
+            //             <SyllabusForm key={index} syllabusData={syllabusItem} index={index} onSave={handleSaveButton} onCancel={handleCancelButton}></SyllabusForm>
+            //         );
+            //     }
+            // })}
+        // </div>
     );
 }
 
-export default App;
+export default CourseApis;
 
