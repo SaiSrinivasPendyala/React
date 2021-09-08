@@ -19,25 +19,29 @@ export default function LoginPage() {
     }
 
     const gotoLoginPage = () => {
-        const path = "http://localhost:3002/api/syllabus/signin";
+        const path = "http://localhost:3002/api/login";
         Axios.post(path, {
             "username": username,
             "password": password
         }).then((result) => {
+            console.log(result);
             if(result.status === 200) {
+                console.log(result.data[0]);
                 const data = result.data[0];
                 const token = data.token;
                 const username = data.username;
-                console.log(token);
+                // console.log(token);
+                // console.log(data.token);
+                // console.log(data);
                 window.sessionStorage.setItem("token", token);
                 window.sessionStorage.setItem("username", username);
                 history.push("/course");
             }
         }).catch((error) => {
             console.log(error, error.response);
-            if(error.status === 404) {
-                setErrorMessage("Please check your username and password!");
-            }
+            // if(error.response.status === 404) {
+            //     setErrorMessage("Please check your username and password!");
+            // }
         });
     }
     return (

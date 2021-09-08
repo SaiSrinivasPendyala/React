@@ -27,7 +27,7 @@ function SyllabusForm(fields) {
     const saveItem = () => {
         const index = fields.index;
         const isUpdate = fields.syllabusData.isUpdate;
-        fields.onSave(index, itemData, isUpdate );
+        fields.onSave(index, itemData, isUpdate);
     }
 
     const cancelForm = () =>
@@ -92,7 +92,7 @@ function CourseApis() {
     }
 
     useEffect(() => {
-		Axios.get()
+		Axios.get('http://localhost:3002/api/course')
 		.then((result) =>
 		{
 			const syllabusItems = result.data;
@@ -104,7 +104,7 @@ function CourseApis() {
 			setLoading(true);
 		}).catch((error) => {
 			console.log(error);
-		})
+		});
 	}, []);
 
     const handleSaveButton = (index, itemData, isUpdate) => {
@@ -115,14 +115,16 @@ function CourseApis() {
         const description = itemData.description;
         const syllabusItem = syllabusItemsCopy[index];
         if(!isUpdate) {
-            Axios.post( {
+            Axios.post('http://localhost:3002/api/course', {
                 "title": syllabusItem.title,
                 "description": syllabusItem.description
             }).then((result) => {
                 if(result.status === 201) {
-                    syllabusItemsCopy[index] = result.itemData[0];
+                    console.log(result);
+                    syllabusItemsCopy[index] = result.data[0];
                     syllabusItemsCopy[index].editMode = false;
                     syllabusItemsCopy[index].isUpdate = true;
+                    console.log(syllabusItemsCopy);
                     addSyllabusItem(syllabusItemsCopy);
                 }
             }).catch((error) => {
@@ -130,7 +132,7 @@ function CourseApis() {
             });
         }
         else {
-            Axios.put("/" + itemId, {
+            Axios.put("http://localhost:3002/api/course/" + itemId, {
                 "title": syllabusItem.title, 
                 "description": syllabusItem.description
             }).then((result) => {
@@ -153,30 +155,39 @@ function CourseApis() {
     const handleDeleteButton = (index) => {
         const syllabusItemsCopy = [...syllabusItems];
         const itemObject = syllabusItemsCopy[index];
+        const itemId = itemObject.itemId;
         const title = itemObject.title;
         const description = itemObject.description;
-        const options = {
-            title: "Tecnics says...",
-            message: "Are you sure you want to delete Syllabus-" + index + 1 + " with\nTitle: " + title +
-            "\n and Description: " + description + "?",
-            buttons: [
-                {
-                    label: 'Yes',
-                    onClick: () => {
-                        syllabusItemsCopy.splice(index, 1);
-                        addSyllabusItem(syllabusItemsCopy);
-                        alert("Syllabus item deleted successfully!");
-                    }
-                },
-                {
-                    label: 'No',
-                    onClick: () => {
-                        console.log("Chill Bro!");
-                    }
-                }
-            ]
-        };
-        confirmAlert(options);
+        Axios.delete("http://localhost:3002/api/course/" + itemId)
+        .then((result) => {
+            if(result.status === 200) {
+                const deleteOptions = {
+                    title: "Tecnics says...",
+                    message: `Are you sure you want to delete Syllabus-${index + 1} with 
+                    Title: ${title} and Description: ${description} ?`,
+                    buttons: [
+                        {
+                            label: 'Yes',
+                            onClick: () => {
+                                syllabusItemsCopy.splice(index, 1);
+                                addSyllabusItem(syllabusItemsCopy);
+                                alert("Syllabus item deleted successfully!");
+                            }
+                        },
+                        {
+                            label: 'No',
+                            onClick: () => {
+                                console.log();
+                            }
+                        }
+                    ]
+                };
+                confirmAlert(deleteOptions);
+            }
+        })
+        .catch((error) => {
+            console.log(error);
+        });
     }
 
     const handleCancelButton = (index, syllabusItem) => {
@@ -198,6 +209,7 @@ function CourseApis() {
     }
 
     const username = window.sessionStorage.getItem("username");
+    
     console.log(username);
     
     return (
@@ -218,21 +230,6 @@ function CourseApis() {
                 }
             })}
         </div>
-        // <div>
-        //     <br></br><button onClick={addEmptyObject}>Add Syllabus</button><br></br>
-            // {syllabusItems.map((syllabusItem, index) => {
-            //     if(syllabusItem.editMode === false) {
-            //         return (
-            //             <SyllabusCard key={index} syllabusData={syllabusItem} index={index} onEdit={handleEditButton} onDelete={handleDeleteButton}></SyllabusCard>
-            //         );
-            //     }
-            //     if(syllabusItem.editMode === true) {
-            //         return (
-            //             <SyllabusForm key={index} syllabusData={syllabusItem} index={index} onSave={handleSaveButton} onCancel={handleCancelButton}></SyllabusForm>
-            //         );
-            //     }
-            // })}
-        // </div>
     );
 }
 
